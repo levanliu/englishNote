@@ -5,62 +5,87 @@
 
 using namespace std;
 
-typedef complex<double> cd;
+#define M_PI 3.14159265358979323846 // pi
+typedef std::complex<double> Complex;
 
-// FFT函数
-void fft(vector<cd>& x) {
-    int N = x.size();
-    if (N <= 1) {
+// 计算复数的幂函数
+Complex power(Complex base, int exponent)
+{
+    Complex result = 1.0;
+    for (int i = 0; i < exponent; i++)
+    {
+        result *= base;
+    }
+    return result;
+}
+
+// 快速傅里叶变换
+void fft(std::vector<Complex> &data, bool inverse = false)
+{
+    int n = data.size();
+    if (n <= 1)
+    {
         return;
     }
-    vector<cd> even, odd;
-    for (int i = 0; i < N; i += 2) {
-        even.push_back(x[i]);
-        odd.push_back(x[i + 1]);
+
+    std::vector<Complex> even(n / 2);
+    std::vector<Complex> odd(n / 2);
+    for (int i = 0; i < n / 2; i++)
+    {
+        even[i] = data[2 * i];
+        odd[i] = data[2 * i + 1];
     }
-    fft(even);
-    fft(odd);
-    for (int k = 0; k < N / 2; ++k) {
-        cd t = polar(1.0, -2 * M_PI * k / N) * odd[k];
-        x[k] = even[k] + t;
-        x[k + N / 2] = even[k] - t;
+
+    fft(even, inverse);
+    fft(odd, inverse);
+
+    for (int k = 0; k < n / 2; ++k)
+    {
+        double angle = (inverse ? -2.0 : 2.0) * M_PI / n;
+        Complex t = std::polar(1.0, angle * k) * odd[k];
+        data[k] = even[k] + t;
+        data[k + n / 2] = even[k] - t;
+    }
+
+    if (inverse)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            data[i] /= n;
+        }
     }
 }
 
-// IFFT函数
-void ifft(vector<cd>& x) {
-    int N = x.size();
-    for (int i = 0; i < N; ++i) {
-        x[i] = conj(x[i]);
-    }
-    fft(x);
-    for (int i = 0; i < N; ++i) {
-        x[i] = conj(x[i]) / N;
-    }
+// 逆快速傅里叶变换
+void ifft(std::vector<Complex> &data)
+{
+    fft(data, true);
 }
 
-// 示例使用
-int main() {
-    vector<cd> x = {1, 2, 3, 4};
+int main()
+{
+    vector<Complex> x = {5,3,2,1};
     int N = x.size();
-    
+
     // 傅里叶变换
     fft(x);
-    
+
     cout << "傅里叶变换结果：" << endl;
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i)
+    {
         cout << x[i] << " ";
     }
     cout << endl;
-    
+
     // 逆傅里叶变换
     ifft(x);
-    
+
     cout << "逆傅里叶变换结果：" << endl;
-    for (int i = 0; i < N; ++i) {
+    for (int i = 0; i < N; ++i)
+    {
         cout << x[i].real() << " ";
     }
     cout << endl;
-    
+
     return 0;
 }
