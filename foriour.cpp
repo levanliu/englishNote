@@ -1,91 +1,74 @@
 #include <iostream>
+#include <vector>
 #include <complex>
 #include <cmath>
-#include <vector>
+#include <iomanip>
 
-using namespace std;
+const double eps = 1e-6;
+const double pi = acos(-1.0);
 
-#define M_PI 3.14159265358979323846 // pi
-typedef std::complex<double> Complex;
-
-// 计算复数的幂函数
-Complex power(Complex base, int exponent)
-{
-    Complex result = 1.0;
-    for (int i = 0; i < exponent; i++)
-    {
-        result *= base;
-    }
-    return result;
-}
-
-// 快速傅里叶变换
-void fft(std::vector<Complex> &data, bool inverse = false)
-{
-    int n = data.size();
-    if (n <= 1)
-    {
+void FFT(std::vector<std::complex<double>>& a, int n, int inv) {
+    if (n == 1)
         return;
+
+    int mid = n / 2;
+    std::vector<std::complex<double>> A1(mid), A2(mid);
+
+    for (int i = 0; i < n; i += 2) {
+        A1[i / 2] = a[i];
+        A2[i / 2] = a[i + 1];
     }
 
-    std::vector<Complex> even(n / 2);
-    std::vector<Complex> odd(n / 2);
-    for (int i = 0; i < n / 2; i++)
-    {
-        even[i] = data[2 * i];
-        odd[i] = data[2 * i + 1];
-    }
+    FFT(A1, mid, inv);
+    FFT(A2, mid, inv);
 
-    fft(even, inverse);
-    fft(odd, inverse);
+    std::complex<double> w0(1, 0), wn(std::cos(2 * pi / n), inv * std::sin(2 * pi / n));
 
-    for (int k = 0; k < n / 2; ++k)
-    {
-        double angle = (inverse ? -2.0 : 2.0) * M_PI / n;
-        Complex t = std::polar(1.0, angle * k) * odd[k];
-        data[k] = even[k] + t;
-        data[k + n / 2] = even[k] - t;
-    }
-
-    if (inverse)
-    {
-        for (int i = 0; i < n; i++)
-        {
-            data[i] /= n;
-        }
+    for (int i = 0; i < mid; ++i, w0 *= wn) {
+        a[i] = A1[i] + w0 * A2[i];
+        a[i + n / 2] = A1[i] - w0 * A2[i];
     }
 }
 
-// 逆快速傅里叶变换
-void ifft(std::vector<Complex> &data)
-{
-    fft(data, true);
-}
+int main() {
+    int n, m;
+    std::cin >> n >> m;
+    std::vector<std::complex<double>> a(n), b(m);
 
-int main()
-{
-    vector<Complex> x = {5,3,2,1};
-    int N = x.size();
-
-    // 傅里叶变换
-    fft(x);
-
-    cout << "傅里叶变换结果：" << endl;
-    for (int i = 0; i < N; ++i)
-    {
-        cout << x[i] << " ";
+    for (int i = 0; i < n; ++i) {
+        double x;
+        std::cin >> x;
+        a[i].real(x);
     }
-    cout << endl;
 
-    // 逆傅里叶变换
-    ifft(x);
-
-    cout << "逆傅里叶变换结果：" << endl;
-    for (int i = 0; i < N; ++i)
-    {
-        cout << x[i].real() << " ";
+    for (int i = 0; i < m; ++i) {
+        double x;
+        std::cin >> x;
+        b[i].real(x);
     }
-    cout << endl;
+
+    int len = 1 << (int)std::ceil(std::log2(n + m));
+    a.resize(len);
+    b.resize(len);
+
+    FFT(a, len, 1);
+    FFT(b, len, 1);
+
+    for (int i = 0; i < len; ++i)
+        a[i] = a[i] * b[i];
+
+    FFT(a, len, -1);
+
+    for (int i = 0; i < n + m - 1; ++i)
+        std::cout << std::fixed << std::setprecision(0) << a[i].real() / len + eps << " ";
 
     return 0;
 }
+
+
+
+/**
+4 4
+5 3 2 1
+1 2 3 5
+*/
